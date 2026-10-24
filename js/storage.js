@@ -10,6 +10,10 @@ const DB = {
     },
     set(k, v) {
         localStorage.setItem(k, JSON.stringify(v));
+        // Automatic cloud sync for users anytime they are saved or updated anywhere!
+        if (k === 'hcm_users') {
+            syncUsersToSupabase(v);
+        }
     }
 };
 
@@ -29,7 +33,6 @@ const company = () => DB.get('hcm_company', null);
 const users = () => DB.get('hcm_users', []);
 const saveUsers = u => {
     DB.set('hcm_users', u);
-    syncUsersToSupabase(u);
 };
 const employees = () => users().filter(u => u.role === 'employee');
 const allAttendance = () => DB.get('hcm_attendance', []);
