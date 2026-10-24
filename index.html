@@ -3,93 +3,251 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>HCM Lite - Login / Register</title>
+    <title>HCM Employee 360 - Login</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- Supabase JS SDK CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Modern Split Screen Animation Layout */
+        body.login-body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        .split-container {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            min-height: 600px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: fadeInScale 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            margin: 20px;
+        }
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .left-brand {
+            flex: 1;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #0f172a 100%);
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .left-brand::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: rgba(56, 189, 248, 0.15);
+            border-radius: 50%;
+            top: -50px;
+            left: -50px;
+            animation: pulseGlow 6s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(1.2); opacity: 0.8; }
+        }
+        .left-brand h1 {
+            font-size: 38px;
+            font-weight: 800;
+            margin: 0 0 15px 0;
+            color: #ffffff;
+            animation: slideInLeft 0.8s ease-out 0.2s both;
+        }
+        .left-brand p {
+            font-size: 16px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin: 0;
+            animation: slideInLeft 0.8s ease-out 0.4s both;
+        }
+        @keyframes slideInLeft {
+            0% { opacity: 0; transform: translateX(-30px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+        .right-form {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #ffffff;
+            color: #1e293b;
+        }
+        .right-form h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .right-form label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .right-form input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        .right-form input:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+            outline: none;
+        }
+        .right-form .btn {
+            background: #0284c7;
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            width: 100%;
+        }
+        .right-form .btn:hover {
+            background: #0369a1;
+            transform: translateY(-1px);
+        }
+        .err {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        @media(max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+                margin: 10px;
+            }
+            .left-brand {
+                padding: 30px;
+                text-align: center;
+            }
+            .right-form {
+                padding: 30px;
+            }
+        }
+    </style>
 </head>
-<body data-page="login">
-    <div class="center">
-        <h1 style="text-align:center">🏢 HCM Lite</h1>
-        
-        <!-- First-run setup / New Company Registration -->
-        <div class="card" id="setupBox" hidden>
-            <h3>First-run setup</h3>
-            <p style="color:var(--muted);font-size:13px">Create your company and the Admin account.</p>
-            <form id="setupForm" novalidate>
-                <label>Company name</label>
-                <input name="company" placeholder="e.g. TechCorp Solutions" required>
-                <span class="err" data-err="company"></span>
-
-                <label>Admin name</label>
-                <input name="name" placeholder="e.g. Raja Salman" required>
-                <span class="err" data-err="name"></span>
-
-                <label>Admin email</label>
-                <input name="email" type="email" placeholder="admin@company.com" required>
-                <span class="err" data-err="email"></span>
-
-                <label>Password</label>
-                <div style="position: relative;">
-                    <input name="password" type="password" id="setupPass" placeholder="Min 4 characters" required style="padding-right: 40px;">
-                    <span onclick="togglePassword('setupPass', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 15px;">👁️</span>
-                </div>
-                <span class="err" data-err="password"></span>
-
-                <button class="btn" style="width:100%; margin-top: 16px;">Create company</button>
-            </form>
+<body data-page="login" class="login-body">
+    <div class="split-container">
+        <!-- Left Side: HCM Employee 360 Branding -->
+        <div class="left-brand">
+            <div style="font-size: 48px; margin-bottom: 15px;">🏢</div>
+            <h1>HCM Employee 360</h1>
+            <p>Aapka complete Human Resource, attendance, aur payroll management ka smart aur modern cloud solution. Device koi bhi ho, data hamesha perfectly synchronized rahega!</p>
         </div>
 
-        <!-- Login Box -->
-        <div class="card" id="loginBox" hidden>
-            <h3>Login</h3>
-            <form id="loginForm" novalidate>
-                <label>Email</label>
-                <input name="email" type="email" placeholder="your.email@company.com" required>
-                <span class="err" data-err="email"></span>
+        <!-- Right Side: Login / Register Form -->
+        <div class="right-form">
+            <!-- First-run setup -->
+            <div id="setupBox" hidden>
+                <h3>First-run setup</h3>
+                <p style="color:#64748b; font-size:13px; margin-bottom:20px;">Apni company aur Admin account create karein.</p>
+                <form id="setupForm" novalidate>
+                    <label>Company Name</label>
+                    <input name="company" placeholder="e.g. TechCorp Solutions" required>
+                    <span class="err" data-err="company"></span>
 
-                <label>Password</label>
-                <div style="position: relative;">
-                    <input name="password" type="password" id="loginPass" placeholder="••••••••" required style="padding-right: 40px;">
-                    <span onclick="togglePassword('loginPass', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 15px;">👁️</span>
-                </div>
-                <span class="err" data-err="password"></span>
+                    <label>Admin Name</label>
+                    <input name="name" placeholder="e.g. Raja Salman" required>
+                    <span class="err" data-err="name"></span>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                    <a href="#" onclick="showRegister(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Register new account</a>
-                    <a href="#" onclick="forgotPassword(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Forgot Password?</a>
-                </div>
+                    <label>Admin Email</label>
+                    <input name="email" type="email" placeholder="admin@company.com" required>
+                    <span class="err" data-err="email"></span>
 
-                <button class="btn" style="width:100%; margin-top: 16px;">Login</button>
-            </form>
-        </div>
+                    <label>Password</label>
+                    <div style="position: relative;">
+                        <input name="password" type="password" id="setupPass" placeholder="Min 4 characters" required style="padding-right: 40px;">
+                        <span onclick="togglePassword('setupPass', this)" style="position: absolute; right: 12px; top: 38%; transform: translateY(-50%); cursor: pointer; font-size: 15px;">👁️</span>
+                    </div>
+                    <span class="err" data-err="password"></span>
 
-        <!-- Register Box (New) -->
-        <div class="card" id="registerBox" hidden>
-            <h3>Register Account</h3>
-            <form id="registerForm" novalidate>
-                <label>Full Name</label>
-                <input name="name" placeholder="e.g. Ali Khan" required>
-                <span class="err" data-err="name"></span>
+                    <button class="btn" style="margin-top: 10px;">Create Company</button>
+                </form>
+            </div>
 
-                <label>Email</label>
-                <input name="email" type="email" placeholder="user@company.com" required>
-                <span class="err" data-err="email"></span>
+            <!-- Login Box -->
+            <div id="loginBox" hidden>
+                <h3>Welcome Back!</h3>
+                <p style="color:#64748b; font-size:13px; margin-bottom:20px;">Apne credentials ke sath login karein.</p>
+                <form id="loginForm" novalidate>
+                    <label>Email Address</label>
+                    <input name="email" type="email" placeholder="your.email@company.com" required>
+                    <span class="err" data-err="email"></span>
 
-                <label>Password</label>
-                <input name="password" type="password" placeholder="Min 4 characters" required>
-                <span class="err" data-err="password"></span>
+                    <label>Password</label>
+                    <div style="position: relative;">
+                        <input name="password" type="password" id="loginPass" placeholder="••••••••" required style="padding-right: 40px;">
+                        <span onclick="togglePassword('loginPass', this)" style="position: absolute; right: 12px; top: 38%; transform: translateY(-50%); cursor: pointer; font-size: 15px;">👁️</span>
+                    </div>
+                    <span class="err" data-err="password"></span>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                    <a href="#" onclick="showLogin(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Already have an account? Login</a>
-                </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <a href="#" onclick="showRegister(event)" style="font-size: 13px; color: #0284c7; text-decoration: none; font-weight: 600;">Register new account</a>
+                        <a href="#" onclick="forgotPassword(event)" style="font-size: 13px; color: #64748b; text-decoration: none;">Forgot Password?</a>
+                    </div>
 
-                <button class="btn" style="width:100%; margin-top: 16px;">Sign Up</button>
-            </form>
+                    <button class="btn">Login</button>
+                </form>
+            </div>
+
+            <!-- Register Box -->
+            <div id="registerBox" hidden>
+                <h3>Create Account</h3>
+                <p style="color:#64748b; font-size:13px; margin-bottom:20px;">Naya employee account register karein.</p>
+                <form id="registerForm" novalidate>
+                    <label>Full Name</label>
+                    <input name="name" placeholder="e.g. Ali Khan" required>
+                    <span class="err" data-err="name"></span>
+
+                    <label>Email Address</label>
+                    <input name="email" type="email" placeholder="user@company.com" required>
+                    <span class="err" data-err="email"></span>
+
+                    <label>Password</label>
+                    <input name="password" type="password" placeholder="Min 4 characters" required>
+                    <span class="err" data-err="password"></span>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <a href="#" onclick="showLogin(event)" style="font-size: 13px; color: #0284c7; text-decoration: none; font-weight: 600;">Already have an account? Login</a>
+                    </div>
+
+                    <button class="btn">Sign Up</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Load scripts -->
+    <!-- Scripts -->
     <script src="js/supabase.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/auth.js"></script>
