@@ -10,7 +10,6 @@ const DB = {
     },
     set(k, v) {
         localStorage.setItem(k, JSON.stringify(v));
-        // Automatic cloud sync for users anytime they are saved or updated anywhere!
         if (k === 'hcm_users') {
             syncUsersToSupabase(v);
         }
@@ -98,7 +97,7 @@ async function syncFromSupabase() {
             });
         }
 
-        // Fetch users
+        // Fetch users & properly map father_name, emp_id, phone
         const { data: usersData } = await supabaseClient.from('users').select('*');
         if (usersData && usersData.length > 0) {
             const formattedUsers = usersData.map(u => ({
