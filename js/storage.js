@@ -158,7 +158,7 @@ async function syncUsersToSupabase(usersList) {
         const compId = comp ? comp.id : 1;
 
         for (let u of usersList) {
-            await supabaseClient.from('users').upsert({
+            const payload = {
                 id: Number(u.id),
                 company_id: compId,
                 name: u.name || '',
@@ -171,7 +171,13 @@ async function syncUsersToSupabase(usersList) {
                 department: u.department || 'General',
                 salary: Number(u.salary) || 0,
                 joined: u.joined || today()
-            }, { onConflict: 'email' });
+            };
+
+            // Using 'id' as conflict target since id is primary key
+            const { error } = await supabaseClient.from('users').upsert(payload, { onConflict: 'id' });
+            if (error) {
+                console.error('Supabase User Upsert Failed:', error);
+            }
         }
     } catch (err) {
         console.error('Error syncing users:', err);
