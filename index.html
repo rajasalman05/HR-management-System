@@ -1,17 +1,68 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HCM Lite - Login</title><link rel="stylesheet" href="css/style.css"></head>
-<body data-page="login"><div class="center">
-<h1 style="text-align:center">🏢 HCM Lite</h1>
-<div class="card" id="setupBox" hidden><h3>First-run setup</h3><p style="color:var(--muted);font-size:13px">Create your company and the Admin account.</p>
-<form id="setupForm" novalidate>
-<label>Company name</label><input name="company"><span class="err" data-err="company"></span>
-<label>Admin name</label><input name="name"><span class="err" data-err="name"></span>
-<label>Admin email</label><input name="email" type="email"><span class="err" data-err="email"></span>
-<label>Password</label><input name="password" type="password"><span class="err" data-err="password"></span>
-<button class="btn" style="width:100%">Create company</button></form></div>
-<div class="card" id="loginBox" hidden><h3>Login</h3>
-<form id="loginForm" novalidate>
-<label>Email</label><input name="email" type="email"><span class="err" data-err="email"></span>
-<label>Password</label><input name="password" type="password"><span class="err" data-err="password"></span>
-<button class="btn" style="width:100%">Login</button></form></div>
-</div>
-<script src="js/storage.js"></script><script src="js/auth.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HCM Lite - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="login">
+    <div class="center">
+        <h1 style="text-align:center">🏢 HCM Lite</h1>
+        
+        <!-- First-run setup / New Company Registration -->
+        <div class="card" id="setupBox" hidden>
+            <h3>First-run setup</h3>
+            <p style="color:var(--muted);font-size:13px">Create your company and the Admin account.</p>
+            <form id="setupForm" novalidate>
+                <label>Company name</label>
+                <input name="company" placeholder="e.g. TechCorp Solutions" required>
+                <span class="err" data-err="company"></span>
+
+                <label>Admin name</label>
+                <input name="name" placeholder="e.g. Raja Salman" required>
+                <span class="err" data-err="name"></span>
+
+                <label>Admin email</label>
+                <input name="email" type="email" placeholder="admin@company.com" required>
+                <span class="err" data-err="email"></span>
+
+                <label>Password</label>
+                <div style="position: relative;">
+                    <input name="password" type="password" id="setupPass" placeholder="Min 4 characters" required style="padding-right: 40px;">
+                    <span onclick="togglePassword('setupPass', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 15px;">👁️</span>
+                </div>
+                <span class="err" data-err="password"></span>
+
+                <button class="btn" style="width:100%; margin-top: 16px;">Create company</button>
+            </form>
+        </div>
+
+        <!-- Login Box -->
+        <div class="card" id="loginBox" hidden>
+            <h3>Login</h3>
+            <form id="loginForm" novalidate>
+                <label>Email</label>
+                <input name="email" type="email" placeholder="your.email@company.com" required>
+                <span class="err" data-err="email"></span>
+
+                <label>Password</label>
+                <div style="position: relative;">
+                    <input name="password" type="password" id="loginPass" placeholder="••••••••" required style="padding-right: 40px;">
+                    <span onclick="togglePassword('loginPass', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 15px;">👁️</span>
+                </div>
+                <span class="err" data-err="password"></span>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+                    <a href="#" onclick="forgotPassword(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Forgot Password?</a>
+                </div>
+
+                <button class="btn" style="width:100%; margin-top: 16px;">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
