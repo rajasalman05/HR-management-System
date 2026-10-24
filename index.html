@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>HCM Lite - Login</title>
+    <title>HCM Lite - Login / Register</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- Supabase JS SDK CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -55,16 +55,41 @@
                 </div>
                 <span class="err" data-err="password"></span>
 
-                <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                    <a href="#" onclick="showRegister(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Register new account</a>
                     <a href="#" onclick="forgotPassword(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Forgot Password?</a>
                 </div>
 
                 <button class="btn" style="width:100%; margin-top: 16px;">Login</button>
             </form>
         </div>
+
+        <!-- Register Box (New) -->
+        <div class="card" id="registerBox" hidden>
+            <h3>Register Account</h3>
+            <form id="registerForm" novalidate>
+                <label>Full Name</label>
+                <input name="name" placeholder="e.g. Ali Khan" required>
+                <span class="err" data-err="name"></span>
+
+                <label>Email</label>
+                <input name="email" type="email" placeholder="user@company.com" required>
+                <span class="err" data-err="email"></span>
+
+                <label>Password</label>
+                <input name="password" type="password" placeholder="Min 4 characters" required>
+                <span class="err" data-err="password"></span>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                    <a href="#" onclick="showLogin(event)" style="font-size: 13px; color: var(--pri); text-decoration: none;">Already have an account? Login</a>
+                </div>
+
+                <button class="btn" style="width:100%; margin-top: 16px;">Sign Up</button>
+            </form>
+        </div>
     </div>
 
-    <!-- Load Supabase Config first -->
+    <!-- Load scripts -->
     <script src="js/supabase.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/auth.js"></script>
