@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>Employees</title></head>
+<body><nav id="nav"></nav><main>
+<div class="card"><h3 id="formTitle">Add employee</h3>
+<form id="empForm" novalidate><div class="two"><div>
+<label>Full name</label><input name="name"><span class="err" data-err="name"></span>
+<label>Email (login)</label><input name="email" type="email"><span class="err" data-err="email"></span>
+<label>Password</label><input name="password" type="password"><span class="err" data-err="password"></span></div><div>
+<label>Department</label><input name="department" list="depList"><datalist id="depList"></datalist><span class="err" data-err="department"></span>
+<label>Monthly salary</label><input name="salary" type="number" min="0" step="any"><span class="err" data-err="salary"></span></div></div>
+<button class="btn">Save employee</button><button type="button" class="btn bad" id="cancelEdit" hidden onclick="resetForm()">Cancel</button></form></div>
+<div class="card"><h3>Employees</h3><div class="two"><input id="search" placeholder="Search name or email"><select id="depFilter"></select></div>
+<table><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Salary</th><th>Joined</th><th></th></tr></thead><tbody id="tbody"></tbody></table></div>
+</main><script src="../js/storage.js"></script><script src="../js/auth.js"></script><script src="../js/employees.js"></script>
+<script>if(guard(['admin'])){layout('employees');$('#empForm').addEventListener('submit',saveEmployee);$('#search').oninput=renderEmployees;$('#depFilter').onchange=renderEmployees;renderEmployees()}</script></body></html>

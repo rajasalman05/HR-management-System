@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>My Dashboard</title><script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script></head>
+<body><nav id="nav"></nav><main>
+<h2 id="hello"></h2><div class="grid" id="stats"></div>
+<div class="card"><h3>Attendance</h3><button class="btn" onclick="doIn()">Check in</button><button class="btn sec" onclick="openCamera()">📷 Camera check-in</button><button class="btn warn" onclick="doOut()">Check out</button>
+<p id="rule" style="color:var(--muted);font-size:13px"></p></div>
+<div class="card"><h3>My attendance (latest)</h3><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th></tr></thead><tbody id="myAtt"></tbody></table></div>
+<div class="two"><div class="card"><h3>Apply for leave</h3><form id="leaveForm" novalidate>
+<label>Type</label><select name="type"><option value="">Select</option><option>Casual</option><option>Sick</option><option>Annual</option></select><span class="err" data-err="type"></span>
+<label>From</label><input type="date" name="from"><span class="err" data-err="from"></span>
+<label>To</label><input type="date" name="to"><span class="err" data-err="to"></span>
+<label>Reason</label><textarea name="reason" rows="2"></textarea><span class="err" data-err="reason"></span><button class="btn">Apply</button></form></div>
+<div class="card" id="helper"></div></div>
+<div class="card"><h3>My leaves</h3><table><thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Admin comment</th></tr></thead><tbody id="myLeaves"></tbody></table></div>
+<div class="card"><h3>📢 Announcements</h3><div id="annList"></div></div>
+</main>
+<dialog id="camModal"><h3>Camera check-in</h3><video id="cam" autoplay playsinline muted></video><p id="camMsg"></p><button class="btn" onclick="verifyAndCheckIn()">Verify & check in</button><button class="btn bad" onclick="closeCamera()">Close</button></dialog>
+<script src="../js/storage.js"></script><script src="../js/auth.js"></script><script src="../js/attendance.js"></script><script src="../js/leave.js"></script><script src="../js/helper.js"></script>
+<script>
+const me=guard(['employee']);
+if(me){layout('employee');initHelper();
+ function refresh(){
+  const td=today(),c=company(),mine=allAttendance().filter(r=>r.employeeId===me.id).sort((a,b)=>b.date.localeCompare(a.date)),r=mine.find(x=>x.date===td);
+  $('#hello').textContent='Welcome, '+me.name;
+  $('#rule').textContent='Office starts '+c.start+' (grace '+c.grace+' min). Under 5 hours = half day.';
+  const s=summary(me.id,td.slice(0,7));
+  const cards=[['Today',r?r.status:attStatus(me,td),''],['Check-in',r?r.in:'-',''],['Leave balance','<span id="balance"></span>','vio'],['Late (month)',s.late,'warn'],['Absent (month)',s.absent,'bad']];
+  $('#stats').innerHTML=cards.map(x=>'<div class="stat '+x[2]+'"><b style="font-size:22px">'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
+  $('#myAtt').innerHTML=mine.slice(0,31).map(x=>'<tr><td>'+x.date+'</td><td>'+x.in+'</td><td>'+(x.out||'-')+'</td><td>'+(x.out?hoursWorked(x).toFixed(1):'-')+'</td><td><span class="tag '+x.status+'">'+x.status+'</span>'+(x.late&&x.status==='half'?' <span class="tag late">late</span>':'')+'</td></tr>').join('')||'<tr><td colspan=5>No records yet</td></tr>';
+  renderMyLeaves();
+  const a=DB.get('hcm_announcements',[]).reverse();$('#annList').innerHTML=a.map(x=>'<p><small>'+x.date+'</small><br>'+esc(x.text)+'</p>').join('')||'<p>No announcements</p>';
+ }
+ function doIn(){const r=checkIn(me.id);toast(r.msg);refresh()}
+ function doOut(){const r=checkOut(me.id);toast(r.msg);refresh()}
+ $('#leaveForm').addEventListener('submit',e=>{e.preventDefault();if(applyLeave(e.target))refresh()});
+ refresh();
+}
+</script></body></html>

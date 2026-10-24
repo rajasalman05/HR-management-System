@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>Settings</title></head>
+<body><nav id="nav"></nav><main><div class="card" style="max-width:560px"><h3>Company settings</h3>
+<form id="setForm" novalidate>
+<label>Company name</label><input name="name"><span class="err" data-err="name"></span>
+<label>Office start time</label><input name="start" type="time"><span class="err" data-err="start"></span>
+<label>Grace minutes</label><input name="grace" type="number" min="0"><span class="err" data-err="grace"></span>
+<label>Yearly leave quota (days)</label><input name="quota" type="number" min="0"><span class="err" data-err="quota"></span>
+<label>Working days</label><div id="days"></div><span class="err" data-err="days"></span>
+<h3>Camera check-in location (optional)</h3>
+<label>Office latitude</label><input name="lat" type="number" step="any"><label>Office longitude</label><input name="lng" type="number" step="any">
+<label>Allowed radius (meters)</label><input name="radius" type="number" min="10"><button type="button" class="btn sec" onclick="useHere()">Use my current location</button><br>
+<button class="btn">Save settings</button></form></div></main>
+<script src="../js/storage.js"></script><script src="../js/auth.js"></script><script>
+if(guard(['admin'])){layout('settings');
+ const f=$('#setForm'),c=company(),names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+ f.name.value=c.name;f.start.value=c.start;f.grace.value=c.grace;f.quota.value=c.quota;f.radius.value=c.radius||200;
+ f.lat.value=c.officeLat===null?'':c.officeLat;f.lng.value=c.officeLng===null?'':c.officeLng;
+ $('#days').innerHTML=names.map((n,i)=>'<label style="display:inline-block;margin-right:10px"><input type="checkbox" value="'+i+'" '+(c.workingDays.includes(i)?'checked':'')+'> '+n+'</label>').join('');
+ function useHere(){navigator.geolocation.getCurrentPosition(p=>{f.lat.value=p.coords.latitude;f.lng.value=p.coords.longitude},e=>alert('Location error: '+e.message))}
+ f.addEventListener('submit',e=>{e.preventDefault();clearErrs(f);let ok=true;const bad=(n,m)=>{setErr(f,n,m);ok=false};
+  const days=$$('#days input:checked').map(x=>+x.value);
+  if(!f.name.value.trim())bad('name','Required');if(!f.start.value)bad('start','Required');
+  if(f.grace.value===''||+f.grace.value<0)bad('grace','Enter 0 or more');
+  if(f.quota.value===''||+f.quota.value<0)bad('quota','Enter 0 or more');
+  if(!days.length)bad('days','Select at least one working day');
+  if(!ok)return;
+  const has=f.lat.value!==''&&f.lng.value!=='';
+  DB.set('hcm_company',{name:f.name.value.trim(),start:f.start.value,grace:+f.grace.value,quota:+f.quota.value,workingDays:days,officeLat:has?+f.lat.value:null,officeLng:has?+f.lng.value:null,radius:+f.radius.value||200});
+  layout('settings');toast('Settings saved');});
+}
+</script></body></html>

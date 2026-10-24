@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>Payslip</title></head>
+<body><nav id="nav"></nav><main>
+<div class="card noprint"><h3>Payslip</h3><div class="two"><div id="empPick"><label>Employee</label><select id="emp"></select></div><div><label>Month</label><input type="month" id="month"></div></div>
+<button class="btn warn" onclick="window.print()">Print / Save as PDF</button></div>
+<div class="card slip" id="slip"></div></main>
+<script src="../js/storage.js"></script><script src="../js/auth.js"></script><script>
+const me=guard(['admin','employee']);
+if(me){layout('payslip');
+ const admin=me.role==='admin';$('#empPick').hidden=!admin;$('#month').value=today().slice(0,7);
+ if(admin)$('#emp').innerHTML=employees().map(e=>'<option value="'+e.id+'">'+esc(e.name)+'</option>').join('');
+ function render(){
+  const id=admin?+$('#emp').value:me.id,u=users().find(x=>x.id===id),m=$('#month').value;
+  if(!u||!m){$('#slip').innerHTML='<p>No employee or month selected.</p>';return}
+  const r=monthRange(m),wd=workingDaysBetween(r[0],r[1]),s=summary(u.id,m);
+  const perDay=wd?u.salary/wd:0,ded=perDay*(s.absent+0.5*s.half),net=u.salary-ded,f=n=>n.toFixed(2);
+  $('#slip').innerHTML='<h2>'+esc(company().name)+'</h2><h3>Payslip - '+m+'</h3><p><b>'+esc(u.name)+'</b><br>'+esc(u.email)+' · '+esc(u.department)+'</p><table>'+
+   [['Monthly salary',f(u.salary)],['Working days in month',wd],['Per day',f(perDay)],['Present days (incl. late)',s.present],['Late days (info only)',s.late],['Half days',s.half],['Absent days',s.absent],['Approved leave days',s.leaveDays],['Deduction = per day × (absent + 0.5 × half)','- '+f(ded)]].map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>').join('')+
+   '<tr><td><b>Net salary</b></td><td><b>'+f(net)+'</b></td></tr></table>';
+ }
+ $('#emp').onchange=render;$('#month').onchange=render;render();
+}
+</script></body></html>
