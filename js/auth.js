@@ -157,7 +157,7 @@ if (document.body.dataset.page === 'login') {
 
     const setupForm = $('#setupForm');
     if (setupForm) {
-        setupForm.addEventListener('submit', e => {
+        setupForm.addEventListener('submit', async e => {
             e.preventDefault();
             const f = e.target, v = Object.fromEntries(new FormData(f));
             clearErrs(f);
@@ -171,19 +171,38 @@ if (document.body.dataset.page === 'login') {
 
             if (!ok) return;
 
-            DB.set('hcm_company', {
+            const compObj = {
+                id: 1,
                 name: v.company.trim(),
                 start: '09:00',
                 grace: 15,
                 quota: 20,
-                workingDays: [1, 2, 3, 4, 5],
+                workingdays: [1, 2, 3, 4, 5],
+                office_lat: null,
+                office_lng: null,
+                radius: 200
+            };
+
+            DB.set('hcm_company', {
+                id: 1,
+                name: compObj.name,
+                start: compObj.start,
+                grace: compObj.grace,
+                quota: compObj.quota,
+                workingDays: compObj.workingdays,
                 officeLat: null,
                 officeLng: null,
                 radius: 200
             });
 
+            // Save Company to Supabase Cloud so Foreign Key works for employees!
+            if (typeof supabaseClient !== 'undefined') {
+                await supabaseClient.from('companies').upsert(compObj);
+            }
+
             const admin = {
                 id: Date.now(),
+                companyId: 1,
                 name: v.name.trim(),
                 email: v.email.trim().toLowerCase(),
                 password: v.password,

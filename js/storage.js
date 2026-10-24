@@ -36,7 +36,7 @@ const allAttendance = () => DB.get('hcm_attendance', []);
 const allLeaves = () => DB.get('hcm_leaves', []);
 const currentUser = () => { const s = DB.get('hcm_session', null); return s ? users().find(u => u.id === s.id) || null : null };
 
-const isWorkingDay = ds => (company().workingDays || [1, 2, 3, 4, 5]).includes(parseD(ds).getDay());
+const isWorkingDay = ds => (company()?.workingDays || [1, 2, 3, 4, 5]).includes(parseD(ds).getDay());
 function datesBetween(from, to) { const out = []; for (let d = parseD(from); d <= parseD(to); d.setDate(d.getDate() + 1)) out.push(fmtDate(d)); return out }
 const workingDaysBetween = (f, t) => datesBetween(f, t).filter(isWorkingDay).length;
 function monthRange(ym) { const p = ym.split('-').map(Number); return [ym + '-01', ym + '-' + pad(new Date(p[0], p[1], 0).getDate())] }
@@ -83,11 +83,12 @@ async function syncFromSupabase() {
         const { data: compData } = await supabaseClient.from('companies').select('*').limit(1);
         if (compData && compData.length > 0) {
             DB.set('hcm_company', {
+                id: compData[0].id,
                 name: compData[0].name,
                 start: compData[0].start,
                 grace: compData[0].grace,
                 quota: compData[0].quota,
-                workingDays: compData[0].workingdays,
+                workingDays: compData[0].workingdays || [1, 2, 3, 4, 5],
                 officeLat: compData[0].office_lat,
                 officeLng: compData[0].office_lng,
                 radius: compData[0].radius
@@ -148,16 +149,20 @@ async function syncFromSupabase() {
 async function syncUsersToSupabase(usersList) {
     try {
         if (typeof supabaseClient === 'undefined') return;
+        const comp = company();
+        const compId = comp ? comp.id : 1;
+
         for (let u of usersList) {
             await supabaseClient.from('users').upsert({
                 id: u.id,
+                company_id: compId,
                 name: u.name,
                 email: u.email,
                 password: u.password,
                 role: u.role,
-                department: u.department,
-                salary: u.salary,
-                joined: u.joined
+                department: u.department || 'General',
+                salary: u.salary || 0,
+                joined: u.joined || today()
             }, { onConflict: 'email' });
         }
     } catch (err) {
