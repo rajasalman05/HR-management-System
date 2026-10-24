@@ -35,7 +35,6 @@ function resetForm() {
     $('#formTitle').textContent = 'Add New Employee';
     $('#cancelEdit').hidden = true;
     
-    // Auto generate fresh Employee ID for next entry
     const empIdField = $('#empIdInput');
     if (empIdField) {
         empIdField.value = 'EMP-' + Math.floor(1000 + Math.random() * 9000);
@@ -48,7 +47,7 @@ function editEmp(id) {
     
     f.name.value = u.name || '';
     f.fatherName.value = u.fatherName || '';
-    f.empId.value = u.empId || '';
+    f.empId.value = u.empId || ('EMP-' + Math.floor(1000 + Math.random() * 9000));
     f.phone.value = u.phone || '';
     f.department.value = u.department || '';
     f.salary.value = u.salary || '';
