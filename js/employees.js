@@ -46,9 +46,9 @@ function editEmp(id) {
     editId = id;
     
     f.name.value = u.name || '';
-    f.fatherName.value = u.fatherName || '';
-    f.empId.value = u.empId || ('EMP-' + Math.floor(1000 + Math.random() * 9000));
-    f.phone.value = u.phone || '';
+    if (f.fatherName) f.fatherName.value = u.fatherName || '';
+    if (f.empId) f.empId.value = u.empId || ('EMP-' + Math.floor(1000 + Math.random() * 9000));
+    if (f.phone) f.phone.value = u.phone || '';
     f.department.value = u.department || '';
     f.salary.value = u.salary || '';
     f.email.value = u.email || '';
@@ -70,17 +70,23 @@ function delEmp(id) {
 
 function saveEmployee(e) {
     e.preventDefault();
-    const f = e.target, v = Object.fromEntries(new FormData(f));
+    const f = e.target;
+    
+    // Directly target inputs to guarantee values are grabbed correctly
+    const v = {
+        name: (f.name.value || '').trim(),
+        fatherName: (f.fatherName ? f.fatherName.value : '').trim(),
+        empId: (f.empId ? f.empId.value : '').trim(),
+        phone: (f.phone ? f.phone.value : '').trim(),
+        email: (f.email.value || '').trim().toLowerCase(),
+        password: f.password.value,
+        department: (f.department.value || '').trim(),
+        salary: parseFloat(f.salary.value) || 0
+    };
+
     clearErrs(f);
     let ok = true;
     const bad = (n, m) => { setErr(f, n, m); ok = false; };
-
-    v.name = (v.name || '').trim();
-    v.fatherName = (v.fatherName || '').trim();
-    v.empId = (v.empId || '').trim();
-    v.phone = (v.phone || '').trim();
-    v.email = (v.email || '').trim().toLowerCase();
-    v.department = (v.department || '').trim();
 
     if (!v.name) bad('name', 'Required');
     if (!v.fatherName) bad('fatherName', 'Required');
@@ -94,23 +100,23 @@ function saveEmployee(e) {
 
     if ((!editId || v.password) && v.password.length < 4) bad('password', 'Min 4 characters');
     if (!v.department) bad('department', 'Required');
-    if (!(+v.salary > 0)) bad('salary', 'Salary must be greater than 0');
+    if (!(v.salary > 0)) bad('salary', 'Salary must be greater than 0');
 
     if (!ok) return;
 
     const all = users();
     if (editId) {
         const u = all.find(x => x.id === editId);
-        Object.assign(u, {
-            name: v.name,
-            fatherName: v.fatherName,
-            empId: v.empId,
-            phone: v.phone,
-            email: v.email,
-            department: v.department,
-            salary: +v.salary
-        });
-        if (v.password) u.password = v.password;
+        if (u) {
+            u.name = v.name;
+            u.fatherName = v.fatherName;
+            u.empId = v.empId;
+            u.phone = v.phone;
+            u.email = v.email;
+            u.department = v.department;
+            u.salary = v.salary;
+            if (v.password) u.password = v.password;
+        }
     } else {
         all.push({
             id: Date.now(),
@@ -122,7 +128,7 @@ function saveEmployee(e) {
             password: v.password,
             role: 'employee',
             department: v.department,
-            salary: +v.salary,
+            salary: v.salary,
             joined: today()
         });
     }
