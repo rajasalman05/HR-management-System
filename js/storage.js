@@ -159,17 +159,17 @@ async function syncUsersToSupabase(usersList) {
 
         for (let u of usersList) {
             await supabaseClient.from('users').upsert({
-                id: u.id,
+                id: Number(u.id),
                 company_id: compId,
-                name: u.name,
-                father_name: u.fatherName || '',
-                emp_id: u.empId || '',
+                name: u.name || '',
+                father_name: u.fatherName || u.father_name || '',
+                emp_id: u.empId || u.emp_id || '',
                 phone: u.phone || '',
-                email: u.email,
-                password: u.password,
-                role: u.role,
+                email: u.email || '',
+                password: u.password || '',
+                role: u.role || 'employee',
                 department: u.department || 'General',
-                salary: u.salary || 0,
+                salary: Number(u.salary) || 0,
                 joined: u.joined || today()
             }, { onConflict: 'email' });
         }
@@ -177,6 +177,5 @@ async function syncUsersToSupabase(usersList) {
         console.error('Error syncing users:', err);
     }
 }
-
 // Run initial sync when script loads
 syncFromSupabase();
