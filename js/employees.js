@@ -1,3 +1,8 @@
+const _origSet = Storage.prototype.setItem;
+Storage.prototype.setItem = function (k, v) {
+  if (k === 'hcm_users') console.trace('hcm_users SAVED HERE');
+  return _origSet.call(this, k, v);
+};
 /* Manage employees: add (creates login), edit, delete, search, filter */
 let editId = null;
 
