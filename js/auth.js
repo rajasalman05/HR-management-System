@@ -1,9 +1,7 @@
 /* Login, first-run setup, guards, logout, change password, navbar, and eye toggle */
 const validEmail = e => /^\S+@\S+\.\S+$/.test(e);
 
-// Relative root path calculator
 const getRoot = () => (location.pathname.includes('/pages/') ? '../' : './');
-
 const homeFor = u => getRoot() + (u.role === 'admin' ? 'pages/admin.html' : 'pages/employee.html');
 
 function guard(roles) {
@@ -20,7 +18,9 @@ function guard(roles) {
     return u;
 }
 
-function logout() {
+// Logout se pehle cloud save poora hone ka intezar
+async function logout() {
+    try { await pendingPush; } catch (e) {}
     localStorage.removeItem('hcm_session');
     location.href = getRoot() + 'index.html';
 }
@@ -45,13 +45,12 @@ function changePassword() {
     }
 }
 
-// Password show/hide eye toggle function
 function togglePassword(fieldId, iconElem) {
     const field = document.getElementById(fieldId);
     if (field) {
         if (field.type === 'password') {
             field.type = 'text';
-            iconElem.textContent = '👁️‍🗨️'; 
+            iconElem.textContent = '👁️‍🗨️';
         } else {
             field.type = 'password';
             iconElem.textContent = '👁️';
@@ -59,7 +58,6 @@ function togglePassword(fieldId, iconElem) {
     }
 }
 
-// Forgot Password simple recovery feature
 function forgotPassword(e) {
     e.preventDefault();
     const emailInput = prompt('Enter your registered email address to reset password:');
@@ -85,7 +83,6 @@ function forgotPassword(e) {
     alert('Password has been reset successfully! You can now login with your new password.');
 }
 
-// Toggle between Login, Setup and Register boxes
 function showRegister(e) {
     e.preventDefault();
     const setupBox = $('#setupBox');
@@ -106,17 +103,16 @@ function showLogin(e) {
     if (loginBox) loginBox.hidden = false;
 }
 
-// Mobile-friendly Navbar with Toggle Support
 function layout(active) {
     const u = currentUser(), c = company();
     if (!u || !c) return;
 
-    const links = u.role === 'admin' 
+    const links = u.role === 'admin'
         ? [['admin', 'Dashboard'], ['employees', 'Employees'], ['leaves', 'Leaves'], ['payslip', 'Payslips'], ['settings', 'Settings']]
         : [['employee', 'Dashboard'], ['payslip', 'Payslip']];
 
     const rootPath = getRoot();
-    
+
     const navHTML = `
         <b>🏢 ${esc(c.name)}</b>
         <div class="nav-links" id="navLinks">
@@ -144,11 +140,11 @@ if (document.body.dataset.page === 'login') {
     }
 
     const first = !company() || !users().some(u => u.role === 'admin');
-    
+
     const setupBox = $('#setupBox');
     const loginBox = $('#loginBox');
     const registerBox = $('#registerBox');
-    
+
     if (setupBox && loginBox) {
         setupBox.hidden = !first;
         loginBox.hidden = first;
@@ -195,7 +191,7 @@ if (document.body.dataset.page === 'login') {
                 radius: 200
             });
 
-            // Save Company to Supabase Cloud so Foreign Key works for employees!
+            // Company pehle cloud par, taake employees ka foreign key chale
             if (typeof supabaseClient !== 'undefined') {
                 await supabaseClient.from('companies').upsert(compObj);
             }
@@ -213,6 +209,7 @@ if (document.body.dataset.page === 'login') {
             };
 
             saveUsers([admin]);
+            try { await pendingPush; } catch (err) {}      // admin cloud par save hone do
             DB.set('hcm_session', { id: admin.id });
             location.href = 'pages/admin.html';
         });
@@ -220,10 +217,12 @@ if (document.body.dataset.page === 'login') {
 
     const loginForm = $('#loginForm');
     if (loginForm) {
-        loginForm.addEventListener('submit', e => {
+        loginForm.addEventListener('submit', async e => {
             e.preventDefault();
             const f = e.target, v = Object.fromEntries(new FormData(f));
             clearErrs(f);
+
+            try { await syncReady; } catch (err) {}        // pehle cloud ka latest data aane do
 
             const u = users().find(x => x.email.toLowerCase() === (v.email || '').trim().toLowerCase() && x.password === v.password);
             if (!u) return setErr(f, 'password', 'Wrong email or password');
@@ -235,10 +234,10 @@ if (document.body.dataset.page === 'login') {
 
     const registerForm = $('#registerForm');
     if (registerForm) {
-        registerForm.addEventListener('submit', e => {
+        registerForm.addEventListener('submit', async e => {
             e.preventDefault();
             clearErrs(registerForm);
-            
+
             const formData = new FormData(registerForm);
             const name = formData.get('name').trim();
             const email = formData.get('email').trim().toLowerCase();
@@ -253,8 +252,10 @@ if (document.body.dataset.page === 'login') {
 
             if (!ok) return;
 
+            try { await syncReady; } catch (err) {}
+
             const currentUsers = users();
-            if (currentUsers.some(u => u.email === email)) {
+            if (currentUsers.some(u => u.email.toLowerCase() === email)) {
                 bad('email', 'Email already registered');
                 return;
             }
@@ -273,7 +274,7 @@ if (document.body.dataset.page === 'login') {
             };
 
             currentUsers.push(newUser);
-            saveUsers(currentUsers); // Storage.js ke zariye Supabase par sync ho jayega!
+            saveUsers(currentUsers);
 
             toast('Registration successful! Please login.');
             registerForm.reset();

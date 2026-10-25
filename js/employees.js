@@ -1,20 +1,15 @@
-const _origSet = Storage.prototype.setItem;
-Storage.prototype.setItem = function (k, v) {
-  if (k === 'hcm_users') console.trace('hcm_users SAVED HERE');
-  return _origSet.call(this, k, v);
-};
 /* Manage employees: add (creates login), edit, delete, search, filter */
 let editId = null;
 
 function renderEmployees() {
     const q = $('#search').value.toLowerCase(), dep = $('#depFilter').value;
     const deps = [...new Set(employees().map(e => e.department))].sort();
-    
+
     $('#depFilter').innerHTML = '<option value="">All departments</option>' + deps.map(d => '<option ' + (d === dep ? 'selected' : '') + '>' + esc(d) + '</option>').join('');
     $('#depList').innerHTML = deps.map(d => '<option value="' + esc(d) + '">').join('');
-    
+
     const rows = employees().filter(e => (e.name + ' ' + e.email + ' ' + (e.empId || '') + ' ' + (e.fatherName || '')).toLowerCase().includes(q) && (!dep || e.department === dep));
-    
+
     $('#tbody').innerHTML = rows.map(e => `
         <tr>
             <td><b>${esc(e.empId || '-')}</b></td>
@@ -39,7 +34,7 @@ function resetForm() {
     clearErrs($('#empForm'));
     $('#formTitle').textContent = 'Add New Employee';
     $('#cancelEdit').hidden = true;
-    
+
     const empIdField = $('#empIdInput');
     if (empIdField) {
         empIdField.value = 'EMP-' + Math.floor(1000 + Math.random() * 9000);
@@ -49,7 +44,7 @@ function resetForm() {
 function editEmp(id) {
     const u = users().find(x => x.id === id), f = $('#empForm');
     editId = id;
-    
+
     f.name.value = u.name || '';
     if (f.fatherName) f.fatherName.value = u.fatherName || '';
     if (f.empId) f.empId.value = u.empId || ('EMP-' + Math.floor(1000 + Math.random() * 9000));
@@ -58,14 +53,26 @@ function editEmp(id) {
     f.salary.value = u.salary || '';
     f.email.value = u.email || '';
     f.password.value = '';
-    
+
     $('#formTitle').textContent = 'Edit Employee (leave password blank to keep it)';
     $('#cancelEdit').hidden = false;
     scrollTo(0, 0);
 }
 
-function delEmp(id) {
+// Cloud se bhi delete, warna sync par employee wapas aa jata hai
+async function delEmp(id) {
     if (!confirm('Delete this employee and all their attendance and leaves?')) return;
+
+    if (typeof supabaseClient !== 'undefined') {
+        try {
+            const { error } = await supabaseClient.from('users').delete().eq('id', id);
+            if (error) { alert('Cloud delete failed: ' + error.message); return; }
+        } catch (err) {
+            alert('Cloud delete failed. Check internet.');
+            return;
+        }
+    }
+
     saveUsers(users().filter(u => u.id !== id));
     DB.set('hcm_attendance', allAttendance().filter(a => a.employeeId !== id));
     DB.set('hcm_leaves', allLeaves().filter(l => l.employeeId !== id));
@@ -76,8 +83,7 @@ function delEmp(id) {
 function saveEmployee(e) {
     e.preventDefault();
     const f = e.target;
-    
-    // Directly target inputs to guarantee values are grabbed correctly
+
     const v = {
         name: (f.name.value || '').trim(),
         fatherName: (f.fatherName ? f.fatherName.value : '').trim(),

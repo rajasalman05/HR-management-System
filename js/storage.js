@@ -1,4 +1,7 @@
-/* Shared helpers: localStorage cache + Supabase Cloud Sync */
+/* Shared helpers: localStorage cache + Supabase Cloud Sync (race-condition safe) */
+let pendingPush = Promise.resolve();   // logout isi ka intezar karta hai
+let lastUsersWrite = 0;                // pull purana data overwrite na kare
+
 const DB = {
     get(k, d) {
         try {
@@ -11,7 +14,9 @@ const DB = {
     set(k, v) {
         localStorage.setItem(k, JSON.stringify(v));
         if (k === 'hcm_users') {
-            syncUsersToSupabase(v);
+            lastUsersWrite = Date.now();
+            localStorage.setItem('hcm_users_dirty', '1');          // cloud tak abhi nahi pohncha
+            pendingPush = pendingPush.then(() => syncUsersToSupabase(v));
         }
     }
 };
@@ -27,12 +32,9 @@ const toMin = t => { const p = t.split(':'); return +p[0] * 60 + +p[1] };
 const parseD = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]) };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Supabase Sync Wrappers
 const company = () => DB.get('hcm_company', null);
 const users = () => DB.get('hcm_users', []);
-const saveUsers = u => {
-    DB.set('hcm_users', u);
-};
+const saveUsers = u => { DB.set('hcm_users', u); };
 const employees = () => users().filter(u => u.role === 'employee');
 const allAttendance = () => DB.get('hcm_attendance', []);
 const allLeaves = () => DB.get('hcm_leaves', []);
@@ -76,12 +78,15 @@ function downloadCSV(name, rows) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = name; a.click();
 }
 
-// Background Sync with Supabase on App Startup
+/* ---------- Supabase: PULL (app start) ---------- */
 async function syncFromSupabase() {
     try {
         if (typeof supabaseClient === 'undefined') return;
-        
-        // Fetch company
+        const pullStarted = Date.now();
+
+        // Agar local edit cloud tak nahi gayi thi, pehle wo push karo
+        if (localStorage.getItem('hcm_users_dirty')) await syncUsersToSupabase(users());
+
         const { data: compData } = await supabaseClient.from('companies').select('*').limit(1);
         if (compData && compData.length > 0) {
             DB.set('hcm_company', {
@@ -97,9 +102,12 @@ async function syncFromSupabase() {
             });
         }
 
-        // Fetch users & properly map father_name, emp_id, phone
         const { data: usersData } = await supabaseClient.from('users').select('*');
-        if (usersData && usersData.length > 0) {
+        // Users tabhi overwrite karo jab: cloud mein data ho, koi unsynced edit na ho,
+        // aur pull shuru hone ke baad koi local edit na hui ho
+        if (usersData && usersData.length > 0
+            && !localStorage.getItem('hcm_users_dirty')
+            && lastUsersWrite < pullStarted) {
             const formattedUsers = usersData.map(u => ({
                 id: Number(u.id),
                 companyId: u.company_id,
@@ -114,13 +122,13 @@ async function syncFromSupabase() {
                 salary: Number(u.salary),
                 joined: u.joined
             }));
-            DB.set('hcm_users', formattedUsers);
+            // DB.set nahi: warna ye wapas cloud par upsert ho jata
+            localStorage.setItem('hcm_users', JSON.stringify(formattedUsers));
         }
 
-        // Fetch attendance
         const { data: attData } = await supabaseClient.from('attendance').select('*');
         if (attData) {
-            const formattedAtt = attData.map(a => ({
+            DB.set('hcm_attendance', attData.map(a => ({
                 id: a.id,
                 employeeId: Number(a.employee_id),
                 date: a.date,
@@ -128,14 +136,12 @@ async function syncFromSupabase() {
                 out: a.out,
                 status: a.status,
                 late: a.late
-            }));
-            DB.set('hcm_attendance', formattedAtt);
+            })));
         }
 
-        // Fetch leaves
         const { data: leaveData } = await supabaseClient.from('leaves').select('*');
         if (leaveData) {
-            const formattedLeaves = leaveData.map(l => ({
+            DB.set('hcm_leaves', leaveData.map(l => ({
                 id: l.id,
                 employeeId: Number(l.employee_id),
                 from: l.from,
@@ -143,45 +149,42 @@ async function syncFromSupabase() {
                 days: l.days,
                 reason: l.reason,
                 status: l.status
-            }));
-            DB.set('hcm_leaves', formattedLeaves);
+            })));
         }
     } catch (err) {
         console.error('Supabase Sync Error:', err);
     }
 }
 
+/* ---------- Supabase: PUSH (ek hi request, loop nahi) ---------- */
 async function syncUsersToSupabase(usersList) {
     try {
         if (typeof supabaseClient === 'undefined') return;
         const comp = company();
         const compId = comp ? comp.id : 1;
 
-        for (let u of usersList) {
-            const payload = {
-                id: Number(u.id),
-                company_id: compId,
-                name: u.name || '',
-                father_name: u.fatherName || u.father_name || '',
-                emp_id: u.empId || u.emp_id || '',
-                phone: u.phone || '',
-                email: u.email || '',
-                password: u.password || '',
-                role: u.role || 'employee',
-                department: u.department || 'General',
-                salary: Number(u.salary) || 0,
-                joined: u.joined || today()
-            };
+        const rows = usersList.map(u => ({
+            id: Number(u.id),
+            company_id: compId,
+            name: u.name || '',
+            father_name: u.fatherName || u.father_name || '',
+            emp_id: u.empId || u.emp_id || '',
+            phone: u.phone || '',
+            email: u.email || '',
+            password: u.password || '',
+            role: u.role || 'employee',
+            department: u.department || 'General',
+            salary: Number(u.salary) || 0,
+            joined: u.joined || today()
+        }));
 
-            // Using 'id' as conflict target since id is primary key
-            const { error } = await supabaseClient.from('users').upsert(payload, { onConflict: 'id' });
-            if (error) {
-                console.error('Supabase User Upsert Failed:', error);
-            }
-        }
+        const { error } = await supabaseClient.from('users').upsert(rows, { onConflict: 'id' });
+        if (error) { console.error('Supabase User Upsert Failed:', error); return; }
+        localStorage.removeItem('hcm_users_dirty');   // sirf kamyabi par
     } catch (err) {
         console.error('Error syncing users:', err);
     }
 }
-// Run initial sync when script loads
-syncFromSupabase();
+
+// Startup sync. Login page isi ka intezar karta hai
+const syncReady = syncFromSupabase();
